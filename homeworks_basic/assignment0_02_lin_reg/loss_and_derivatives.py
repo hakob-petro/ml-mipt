@@ -1,5 +1,5 @@
 import numpy as np
-
+from sklearn.metrics import mean_squared_error
 
 class LossAndDerivatives:
     @staticmethod
@@ -32,8 +32,8 @@ class LossAndDerivatives:
         Comment: If Y is two-dimentional, average the error over both dimentions.
         """
 
-        # YOUR CODE HERE    
-        return 
+        # YOUR CODE HERE
+        return np.mean(np.abs(X.dot(w) - Y))
 
     @staticmethod
     def l2_reg(w):
@@ -47,7 +47,7 @@ class LossAndDerivatives:
         """
         
         # YOUR CODE HERE
-        return 
+        return np.sum(np.dot(w.T, w))
 
     @staticmethod
     def l1_reg(w):
@@ -59,9 +59,9 @@ class LossAndDerivatives:
         
         Computes the L1 regularization term for the weight matrix w.
         """
-
+        
         # YOUR CODE HERE
-        return 
+        return np.sum(np.abs(w.T, w))
 
     @staticmethod
     def no_reg(w):
@@ -87,7 +87,7 @@ class LossAndDerivatives:
         """
 
         # YOUR CODE HERE
-        return 
+        return (2 * np.dot(X.T, (X.dot(w) - Y)) ) / (4 * X.shape[0])
 
     @staticmethod
     def mae_derivative(X, Y, w):
@@ -106,8 +106,8 @@ class LossAndDerivatives:
         """
 
         # YOUR CODE HERE
-        return 
-
+        return (X.T.dot(np.sign(X.dot(w)-Y))) / (4 * X.shape[0])
+    
     @staticmethod
     def l2_reg_derivative(w):
         """
@@ -119,7 +119,7 @@ class LossAndDerivatives:
         """
 
         # YOUR CODE HERE
-        return 
+        return 2*w
 
     @staticmethod
     def l1_reg_derivative(w):
@@ -133,7 +133,7 @@ class LossAndDerivatives:
         """
 
         # YOUR CODE HERE
-        return 
+        return np.zeros_like(w) + 1
 
     @staticmethod
     def no_reg_derivative(w):
