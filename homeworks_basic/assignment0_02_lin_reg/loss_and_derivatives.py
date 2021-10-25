@@ -1,5 +1,4 @@
 import numpy as np
-from sklearn.metrics import mean_squared_error
 
 class LossAndDerivatives:
     @staticmethod
@@ -47,7 +46,7 @@ class LossAndDerivatives:
         """
         
         # YOUR CODE HERE
-        return np.sum(np.dot(w.T, w))
+        return np.sum(np.square(w))
 
     @staticmethod
     def l1_reg(w):
@@ -61,7 +60,7 @@ class LossAndDerivatives:
         """
         
         # YOUR CODE HERE
-        return np.sum(np.abs(w.T, w))
+        return np.sum(np.abs(w))
 
     @staticmethod
     def no_reg(w):
@@ -87,7 +86,7 @@ class LossAndDerivatives:
         """
 
         # YOUR CODE HERE
-        return (2 * np.dot(X.T, (X.dot(w) - Y)) ) / (4 * X.shape[0])
+        return (2*X.T.dot(X.dot(w) - Y))/(w.shape[1]*X.shape[0])
 
     @staticmethod
     def mae_derivative(X, Y, w):
@@ -106,7 +105,7 @@ class LossAndDerivatives:
         """
 
         # YOUR CODE HERE
-        return (X.T.dot(np.sign(X.dot(w)-Y))) / (4 * X.shape[0])
+        return (X.T.dot(np.sign(X.dot(w)-Y))) / (w.shape[1] * X.shape[0])
     
     @staticmethod
     def l2_reg_derivative(w):
@@ -133,7 +132,7 @@ class LossAndDerivatives:
         """
 
         # YOUR CODE HERE
-        return np.zeros_like(w) + 1
+        return np.sign(w)
 
     @staticmethod
     def no_reg_derivative(w):
