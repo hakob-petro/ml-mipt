@@ -16,8 +16,10 @@ def rbf(x_1, x_2, sigma=1.):
     Returns:
         kernel function values for all pairs of samples from x_1 and x_2
         torch.tensor of type torch.float32 shaped `(#samples_1, #samples_2)`
-    '''
-    distances = ### YOUR CODE HERE
+    '''  
+    # pairs of elements x_2 per each x_1 sample
+    pairs = torch.unsqueeze(x_1, dim=1) - x_2
+    distances = torch.exp(-(torch.sum((pairs)**2, 2)) / (2*sigma**2)) ### YOUR CODE HERE
     return torch.Tensor(distances).type(torch.float32)
 
 def hinge_loss(scores, labels):
@@ -25,7 +27,7 @@ def hinge_loss(scores, labels):
     '''
     assert len(scores.shape) == 1
     assert len(labels.shape) == 1
-    return ### YOUR CODE HERE
+    return torch.clamp(1 - labels.T@scores, min=0)### YOUR CODE HERE
 
 
 class SVM(BaseEstimator, ClassifierMixin):
@@ -40,7 +42,8 @@ class SVM(BaseEstimator, ClassifierMixin):
             kernel function values for all pairs of samples from x_1 and x_2
             torch.tensor shaped `(#samples_1, #samples_2)` of type torch.float32
         '''
-        return ### YOUR CODE HERE
+        
+        return x_1 @ x_2.T ### YOUR CODE HERE
     
     def __init__(
         self,
@@ -65,11 +68,11 @@ class SVM(BaseEstimator, ClassifierMixin):
     def fit(self, X, Y):
         assert (np.abs(Y) == 1).all()
         n_obj = len(X)
-        X, Y = torch.FloatTensor(X), torch.FloatTensor(Y)
-        K = self.kernel_function(X, X).float()
+        X, Y = torch.FloatTensor(X), torch.FloatTensor(Y) # X.shape = (100, 2), Y.shape = (100, )
+        K = self.kernel_function(X, X).float() # K.shape = (100, 100)
 
-        self.betas = torch.full((n_obj, 1), fill_value=0.001, dtype=X.dtype, requires_grad=True)
-        self.bias = torch.zeros(1, requires_grad=True) # I've also add bias to the model
+        self.betas = torch.full((n_obj, 1), fill_value=0.001, dtype=X.dtype, requires_grad=True) # betas.shape = (100, 1)
+        self.bias = torch.zeros(1, requires_grad=True) # I've also add bias to the model self.bias.shape = (1, )
         
         optimizer = optim.SGD((self.betas, self.bias), lr=self.lr)
         for epoch in range(self.epochs):
@@ -77,15 +80,18 @@ class SVM(BaseEstimator, ClassifierMixin):
             sum_loss = 0.                 # Loss for each epoch
             for i in range(0, n_obj, self.batch_size):
                 batch_inds = perm[i:i + self.batch_size]
-                x_batch = X[batch_inds]   # Pick random samples by iterating over random permutation
-                y_batch = Y[batch_inds]   # Pick the correlating class
-                k_batch = K[batch_inds]
+                x_batch = X[batch_inds]   # Pick random samples by iterating over random permutation x_batch.shape = (20, 2)
+                y_batch = Y[batch_inds]   # Pick the correlating class y_batch.shape = (20, )
+                k_batch = K[batch_inds] # k_batch.shape = (20, 100)
                 
                 optimizer.zero_grad()     # Manually zero the gradient buffers of the optimizer
                 
-                preds = ### YOUR CODE HERE # get the matrix product using SVM parameters: self.betas and self.bias
-                preds = preds.flatten()
-                loss = self.lmbd * self.betas[batch_inds].T @ k_batch @ self.betas + hinge_loss(preds, y_batch)
+                ### YOUR CODE HERE # get the matrix product using SVM parameters: self.betas and self.bias
+                preds = self.betas.T @ k_batch.T - self.bias # preds.shape = (1, 20)
+                
+                preds = preds.flatten() # preds.shape = (20, )
+                # (1, 20) @ (20, 100) @ (100, 1) + hinge_loss((20, ),(20, )) = (1,1) + ()
+                loss = (self.lmbd * self.betas[batch_inds].T @ k_batch @ self.betas)[0][0] + hinge_loss(preds, y_batch)
                 loss.backward()           # Backpropagation
                 optimizer.step()          # Optimize and adjust weights
 
@@ -102,7 +108,7 @@ class SVM(BaseEstimator, ClassifierMixin):
             batch = torch.from_numpy(batch).float()
             K = self.kernel_function(batch, self.X)
             # compute the margin values for every object in the batch
-            return ### YOUR CODE HERE
+            return (self.betas.T @ K.T  - self.bias).flatten() ### YOUR CODE HERE (1, 100)@(100,20) - (1, ) = (20, ) 
 
     def predict(self, batch):
         scores = self.predict_scores(batch)
