@@ -1,5 +1,6 @@
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.metrics import accuracy_score
+from scipy.spatial import distance_matrix
 
 import numpy as np
 import torch
@@ -17,9 +18,26 @@ def rbf(x_1, x_2, sigma=1.):
         kernel function values for all pairs of samples from x_1 and x_2
         torch.tensor of type torch.float32 shaped `(#samples_1, #samples_2)`
     '''  
-    # pairs of elements x_2 per each x_1 sample
+    ### YOUR CODE HERE
+    # The first shortest variant using scipy
+    # distances = distance_matrix(x_1, x_2)
+    
+    # The second variant using numpy/pytorch broadcasting
     pairs = torch.unsqueeze(x_1, dim=1) - x_2
-    distances = torch.exp(-(torch.sum((pairs)**2, 2)) / (2*sigma**2)) ### YOUR CODE HERE
+    distances = np.sqrt(torch.sum((pairs)**2, 2) 
+                        
+    # The third longest variant
+    # x_1 = x_1.numpy()
+    # x_2 = x_2.numpy()
+    # samples_1 = x_1.shape[0]
+    # samples_2 = x_2.shape[0]
+    # x_1_dots = (x_1*x_1).sum(axis=1).reshape((samples_1,1))*np.ones(shape=(1,samples_2))
+    # x_2_dots = (x_2*x_2).sum(axis=1)*np.ones(shape=(samples_1, 1))
+    # x_1_x_2 = -2*x_1.dot(x_2.T)
+    # distances = torch.from_numpy(np.sqrt(x_1_dots + x_2_dots + x_1_x_2))
+    
+    distances = torch.exp(-torch.tensor(distances).type(torch.float32) / (2*sigma**2))
+   
     return torch.Tensor(distances).type(torch.float32)
 
 def hinge_loss(scores, labels):
@@ -27,7 +45,7 @@ def hinge_loss(scores, labels):
     '''
     assert len(scores.shape) == 1
     assert len(labels.shape) == 1
-    return torch.clamp(1 - labels.T@scores, min=0)### YOUR CODE HERE
+    return torch.clamp(1 - scores * labels, min=0).mean() ### YOUR CODE HERE
 
 
 class SVM(BaseEstimator, ClassifierMixin):
@@ -87,11 +105,11 @@ class SVM(BaseEstimator, ClassifierMixin):
                 optimizer.zero_grad()     # Manually zero the gradient buffers of the optimizer
                 
                 ### YOUR CODE HERE # get the matrix product using SVM parameters: self.betas and self.bias
-                preds = self.betas.T @ k_batch.T - self.bias # preds.shape = (1, 20)
+                preds = k_batch @ self.betas + self.bias
                 
                 preds = preds.flatten() # preds.shape = (20, )
-                # (1, 20) @ (20, 100) @ (100, 1) + hinge_loss((20, ),(20, )) = (1,1) + ()
-                loss = (self.lmbd * self.betas[batch_inds].T @ k_batch @ self.betas)[0][0] + hinge_loss(preds, y_batch)
+                # (1, 20) @ (20, 100) @ (100, 1) + hinge_loss((20, ),(20, )) = ()
+                loss = (self.lmbd * self.betas[batch_inds].T @ k_batch @ self.betas) + hinge_loss(preds, y_batch)
                 loss.backward()           # Backpropagation
                 optimizer.step()          # Optimize and adjust weights
 
@@ -108,7 +126,7 @@ class SVM(BaseEstimator, ClassifierMixin):
             batch = torch.from_numpy(batch).float()
             K = self.kernel_function(batch, self.X)
             # compute the margin values for every object in the batch
-            return (self.betas.T @ K.T  - self.bias).flatten() ### YOUR CODE HERE (1, 100)@(100,20) - (1, ) = (20, ) 
+            return (K @ self.betas  + self.bias).flatten() ### YOUR CODE HERE (1, 100)@(100,20) - (1, ) = (20, )
 
     def predict(self, batch):
         scores = self.predict_scores(batch)
